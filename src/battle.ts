@@ -7,6 +7,10 @@ export const TICK_SECONDS = 0.5;
 /** Battles that last longer are decided by the timeout rule. */
 export const MAX_TICKS = 60;
 export const HERO_BASE_HP = 40;
+/** Poison deals its damage every this many ticks. */
+export const POISON_INTERVAL = 2;
+/** HP lost per poison stack each time poison deals damage. */
+export const POISON_DAMAGE_PER_STACK = 1;
 
 /** Turns a list of item ids into a fighter with the catalog values of each item. */
 export function buildFighter(itemIds: string[], baseHp: number, name = "Fighter"): Fighter {
@@ -30,6 +34,8 @@ interface FighterState {
   fighter: Fighter;
   hp: number;
   block: number;
+  /** Poison stacks; they never decay during a battle. */
+  poison: number;
   /** Ticks each item has charged towards its cooldown. */
   charge: number[];
 }
@@ -40,6 +46,7 @@ const snapshot = (s: FighterState): FighterSnapshot => ({
   hp: Math.max(0, s.hp),
   maxHp: s.fighter.maxHp,
   block: s.block,
+  poison: s.poison,
 });
 
 const isDown = (s: FighterState) => s.hp <= 0;
@@ -51,8 +58,11 @@ const isDown = (s: FighterState) => s.hp <= 0;
  * Each tick:
  * 1. Each fighter charges all items by one tick; items whose charge reaches their cooldown fire.
  * 2. Fired items resolve (player first, then opponent). Both sides fire "simultaneously":
- *    which items fire is decided before any effect is applied.
- * After step 2 the battle ends if someone is down; if both are down, the player loses.
+ *    which items fire is decided before any effect is applied. Per item: damage, poison, block, heal.
+ *    Heal never goes above max HP, and a knocked-out fighter can't be healed.
+ * 3. Every `POISON_INTERVAL` ticks, each poisoned fighter loses `POISON_DAMAGE_PER_STACK` HP per
+ *    stack. Poison ignores block and its stacks never decay.
+ * After step 3 the battle ends if someone is down; if both are down, the player loses.
  * After `MAX_TICKS` the higher HP percentage wins; a tie is a player loss.
  */
 export function simulateBattle(player: Fighter, opponent: Fighter): BattleResult {
@@ -85,6 +95,9 @@ export function simulateBattle(player: Fighter, opponent: Fighter): BattleResult
     for (const side of ["player", "opponent"] as const) {
       for (const item of fired[side]) resolveItem(item, state[side], state[other(side)], side, emit);
     }
+    if (tick % POISON_INTERVAL === 0) {
+      for (const side of ["player", "opponent"] as const) applyPoison(state[side], side, emit);
+    }
     winner = knockoutWinner();
 
     frames.push({ tick, player: snapshot(state.player), opponent: snapshot(state.opponent), events: tickEvents });
@@ -96,7 +109,7 @@ export function simulateBattle(player: Fighter, opponent: Fighter): BattleResult
 }
 
 function initState(fighter: Fighter): FighterState {
-  return { fighter, hp: fighter.maxHp, block: 0, charge: fighter.items.map(() => 0) };
+  return { fighter, hp: fighter.maxHp, block: 0, poison: 0, charge: fighter.items.map(() => 0) };
 }
 
 /** Advances one tick of cooldowns and returns the items that fire this tick. */
@@ -119,7 +132,7 @@ function resolveItem(
   side: Side,
   emit: (event: Omit<BattleEvent, "tick">) => void,
 ) {
-  const { damage, block } = item.effects;
+  const { damage, block, poison, heal } = item.effects;
   const base = { source: side, itemId: item.itemId };
   const enemySide = other(side);
 
@@ -130,10 +143,28 @@ function resolveItem(
     const note = absorbed > 0 ? ` (${absorbed} blocked)` : "";
     emit({ ...base, target: enemySide, kind: "damage", amount: damage, message: `${item.name} hits ${enemy.fighter.name} for ${damage}${note}` });
   }
+  if (poison) {
+    enemy.poison += poison;
+    emit({ ...base, target: enemySide, kind: "poison", amount: poison, message: `${item.name} poisons ${enemy.fighter.name} (+${poison}, ${enemy.poison} stacks)` });
+  }
   if (block) {
     self.block += block;
     emit({ ...base, target: side, kind: "block", amount: block, message: `${item.name} grants ${self.fighter.name} ${block} block` });
   }
+  if (heal && !isDown(self)) {
+    const healed = Math.min(heal, self.fighter.maxHp - self.hp);
+    self.hp += healed;
+    const note = healed < heal ? ` (max HP ${self.fighter.maxHp})` : "";
+    emit({ ...base, target: side, kind: "heal", amount: healed, message: `${item.name} heals ${self.fighter.name} for ${healed}${note}` });
+  }
+}
+
+/** Poison damage for one fighter; ignores block. Shown on the side of whoever applied the poison. */
+function applyPoison(s: FighterState, side: Side, emit: (event: Omit<BattleEvent, "tick">) => void) {
+  if (s.poison <= 0) return;
+  const damage = s.poison * POISON_DAMAGE_PER_STACK;
+  s.hp -= damage;
+  emit({ source: other(side), target: side, kind: "poison-tick", amount: damage, message: `Poison deals ${damage} to ${s.fighter.name} (${s.poison} stacks)` });
 }
 
 function timeoutWinner(player: FighterState, opponent: FighterState): Side {

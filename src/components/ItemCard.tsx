@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { TICK_SECONDS } from "../battle";
 import { describeEffects } from "../items";
-import { COOLDOWN_HELP, EFFECT_HELP } from "../rules";
+import { COOLDOWN_HELP, EFFECT_HELP, RARE_HELP } from "../rules";
 import type { ItemDef } from "../types";
 
 interface ItemCardProps {
@@ -12,13 +12,18 @@ interface ItemCardProps {
 
 export function ItemCard({ item, children }: ItemCardProps) {
   return (
-    <article className="flex flex-col gap-2 rounded-lg border-2 border-gold/40 bg-ink/40 p-3">
+    <article className={`flex flex-col gap-2 rounded-lg border-2 bg-ink/40 p-3 ${item.variantOf ? "border-poison/70" : "border-gold/40"}`}>
       <div className="flex items-start gap-3">
         <span className="text-3xl leading-none" aria-hidden>
           {item.icon}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-display font-bold">{item.name}</h3>
+          {item.variantOf && (
+            <p title={RARE_HELP} className={`text-xs font-bold text-poison ${HELP}`}>
+              ✨ Rare poisoned version
+            </p>
+          )}
         </div>
       </div>
       <ul className="flex flex-wrap gap-x-3 gap-y-1 text-sm">

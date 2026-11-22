@@ -91,13 +91,21 @@ export function BattleView({ battle, done, continueLabel, onSkip, onContinue }: 
 /** Hero actions | time | enemy actions. */
 const LOG_ROW = "grid grid-cols-[1fr_auto_1fr] items-start gap-2";
 
-/** Text colour per event: damage red, everything else neutral. */
+/** Text colour per event: damage red, poison green, heal pink, everything else neutral. */
 const EVENT_COLOUR: Partial<Record<BattleEventKind, string>> = {
   damage: "text-life",
+  poison: "text-poison",
+  "poison-tick": "text-poison",
+  heal: "text-heal",
+};
+
+/** Icon for events that don't come from an item. */
+const STATUS_ICON: Partial<Record<BattleEventKind, string>> = {
+  "poison-tick": "☠️",
 };
 
 function LogLine({ event }: { event: BattleEvent }) {
-  const icon = getItem(event.itemId).icon;
+  const icon = event.itemId ? getItem(event.itemId).icon : (STATUS_ICON[event.kind] ?? "•");
   const byPlayer = event.source === "player";
   const text = (
     <span className={`flex gap-1.5 ${byPlayer ? "" : "flex-row-reverse text-right"} ${EVENT_COLOUR[event.kind] ?? ""}`}>
@@ -123,7 +131,7 @@ interface FighterPanelProps {
 }
 
 function FighterPanel({ side, icon, fighter, snapshot }: FighterPanelProps) {
-  const { hp, maxHp, block } = snapshot;
+  const { hp, maxHp, block, poison } = snapshot;
   const knockedOut = hp <= 0;
 
   return (
@@ -140,6 +148,14 @@ function FighterPanel({ side, icon, fighter, snapshot }: FighterPanelProps) {
 
       <Bar label="HP" value={hp} max={maxHp} text={`${hp} / ${maxHp}`} colour="bg-life" help={STATUS_HELP.hp} />
       <Bar label="Block" value={block} max={maxHp} text={`🛡️ ${block}`} colour="bg-block" help={STATUS_HELP.block} />
+      <p
+        title={STATUS_HELP.poison}
+        aria-label={`Poison stacks: ${poison}`}
+        className={`flex cursor-help justify-between text-xs ${poison > 0 ? "font-bold text-poison" : "text-muted"}`}
+      >
+        <span>Poison</span>
+        <span className="font-mono">☠️ {poison}</span>
+      </p>
 
       <ul className="flex flex-wrap gap-1" aria-label="Items">
         {fighter.items.map((item, index) => (

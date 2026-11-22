@@ -1,4 +1,4 @@
-import { CATALOG } from "./items";
+import { SHOP_POOL, variantOf } from "./items";
 import type { Backpack } from "./types";
 
 export const SHOP_SIZE = 4;
@@ -18,10 +18,21 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-/** Rolls `SHOP_SIZE` offers (duplicates allowed) and returns the seed for the next roll. */
+/** Chance that a weapon offer is replaced by its rare poisoned version. */
+export const POISON_VARIANT_CHANCE = 0.25;
+
+/**
+ * Rolls `SHOP_SIZE` offers (duplicates allowed) and returns the seed for the next roll.
+ * Each offer picks an item from the shop pool; if that item has a rare variant
+ * (a poisoned weapon), a second roll turns it into the variant with `POISON_VARIANT_CHANCE`.
+ */
 export function rollShop(seed: number): { offers: string[]; seed: number } {
   const rng = mulberry32(seed);
-  const offers = Array.from({ length: SHOP_SIZE }, () => CATALOG[Math.floor(rng() * CATALOG.length)].id);
+  const offers = Array.from({ length: SHOP_SIZE }, () => {
+    const base = SHOP_POOL[Math.floor(rng() * SHOP_POOL.length)];
+    const variant = variantOf(base.id);
+    return variant && rng() < POISON_VARIANT_CHANCE ? variant.id : base.id;
+  });
   return { offers, seed: Math.floor(rng() * 4294967296) };
 }
 

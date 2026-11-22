@@ -53,7 +53,7 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
               aria-label={item ? item.name : `Empty slot ${index + 1}`}
               className={[
                 "relative flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-2 p-1",
-                item ? "border-gold/40 bg-ink/40" : "border-dashed border-panel-edge",
+                item ? `${item.variantOf ? "border-poison/70" : "border-gold/40"} bg-ink/40` : "border-dashed border-panel-edge",
                 isSelected ? "ring-2 ring-gold" : "",
                 moveAllowed ? "cursor-pointer ring-1 ring-inset ring-gold/70" : "",
               ].join(" ")}
