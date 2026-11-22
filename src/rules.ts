@@ -45,6 +45,8 @@ export const RULES: RuleSection[] = [
       `You start with ${START_GOLD} 🪙 and earn ${GOLD_PER_ROUND} 🪙 at the start of every new round. Unspent gold carries over.`,
       `The shop offers ${SHOP_SIZE} new items every round.`,
       `Bought items go to the first free slot of your ${BACKPACK_COLS}×${BACKPACK_ROWS} backpack and stay there for the whole run.`,
+      `Sell a backpack item for half its price, rounded down. Reroll the shop offers for 1 🪙.`,
+      `Gold never becomes negative; backpack actions are available only while shopping.`,
       `Only items in your backpack fight. Their position doesn't matter.`,
     ],
   },
