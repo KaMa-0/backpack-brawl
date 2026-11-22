@@ -10,12 +10,15 @@ const BASE_ITEMS: ItemDef[] = [
   { id: "chipped-dagger", name: "Chipped Dagger", icon: "🗡️", price: 2, cooldown: 4, effects: { damage: 3 } },
   { id: "hunting-bow", name: "Hunting Bow", icon: "🏹", price: 4, cooldown: 4, effects: { damage: 5 } },
   { id: "iron-cleaver", name: "Iron Cleaver", icon: "🪓", price: 5, cooldown: 8, effects: { damage: 12 } },
-  { id: "oak-buckler", name: "Oak Buckler", icon: "🛡️", price: 3, cooldown: 5, effects: { block: 4 } },
-  { id: "pot-lid", name: "Pot Lid", icon: "🍳", price: 2, cooldown: 3, effects: { block: 2 } },
-  { id: "spiked-shield", name: "Spiked Shield", icon: "⚔️", price: 4, cooldown: 6, effects: { damage: 3, block: 3 } },
+  { id: "oak-buckler", name: "Oak Buckler", icon: "🛡️", price: 3, cooldown: 5, effects: { block: 4 }, set: "guardian" },
+  { id: "pot-lid", name: "Pot Lid", icon: "🍳", price: 2, cooldown: 3, effects: { block: 2 }, set: "guardian" },
+  { id: "spiked-shield", name: "Spiked Shield", icon: "⚔️", price: 4, cooldown: 6, effects: { damage: 3, block: 3 }, set: "guardian" },
   { id: "healing-herb", name: "Healing Herb", icon: "🌿", price: 2, cooldown: 4, effects: { heal: 2 } },
   { id: "love-charm", name: "Love Charm", icon: "💕", price: 3, cooldown: 5, effects: { heal: 3 } },
   { id: "health-potion", name: "Health Potion", icon: "🧪", price: 5, cooldown: 8, effects: { heal: 7 } },
+  { id: "torch", name: "Torch", icon: "🔥", price: 3, cooldown: 4, effects: { damage: 2 }, set: "fire" },
+  { id: "firecracker", name: "Firecracker", icon: "🧨", price: 4, cooldown: 6, effects: { damage: 4 }, set: "fire" },
+  { id: "magma-hammer", name: "Magma Hammer", icon: "🌋", price: 6, cooldown: 8, effects: { damage: 10 }, set: "fire" },
 ];
 
 /** Rare poisoned version of a weapon: same stats plus poison, a bit more expensive. */
@@ -64,6 +67,7 @@ const EFFECT_LABELS: [keyof ItemEffects, (n: number) => string][] = [
   ["poison", (n) => `☠️ ${n} poison`],
   ["block", (n) => `🛡️ +${n} block`],
   ["heal", (n) => `💕 +${n} heal`],
+  ["burn", (n) => `🔥 ${n} burn`],
 ];
 
 /** Short labels for an item's effects, e.g. `[{ effect: "damage", label: "⚔️ 2 dmg" }, …]`. */

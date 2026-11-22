@@ -28,3 +28,15 @@
 - Battle view shows a poison counter per fighter, and the combat log shows poison applied, poison damage and heals in their own colours. The rules panel and tooltips explain both effects; all texts are built from the same constants as the simulation.
 - Rare poisoned items have a green border and a "Rare poisoned version" badge in the shop and the backpack.
 - Added Vitest tests for poison timing, block bypass, no decay, heal cap, no revive, determinism, catalog requirements and shop variant rolls.
+
+## B4 — Item sets
+
+- Added a data-driven set system in `src/sets.ts`. A set's bonus is active while a fighter has **2 or more different** items of that set. Two copies of the same item count once, and a poisoned weapon counts as its normal version.
+- **🔥 Fire set:** 🔥 Torch (3 🪙, every 2 s, 2 dmg), 🧨 Firecracker (4 🪙, every 3 s, 4 dmg) and 🌋 Magma Hammer (6 🪙, every 4 s, 10 dmg). Bonus: every Fire item also adds 3 Burn to the enemy.
+- **🛡️ Guardian set:** Oak Buckler, Pot Lid and Spiked Shield. Bonus: every Guardian item grants +2 extra block.
+- Added the **Burn** status. Every tick (0.5 s) a burning fighter takes 1 damage per stack. Block absorbs burn damage first, and afterwards the burn loses 1 stack until it wears off. Compared with poison, burn stacks faster (3 vs 2 stacks per hit) and deals more damage per stack (every 0.5 s instead of every 1 s), but block stops it and it decays.
+- Order within a tick: items fire (damage → poison → burn → block → heal), then poison, then burn, then knockouts are checked.
+- Set bonuses are applied in `buildFighter`, so they work the same way for the player and for opponents. Tollgate Ogre (Guardian), Pit Gladiator (Fire), Ash Golem (Fire + Guardian) and Hollow King (Guardian) now use sets.
+- Set badges are shown on items in the shop, the backpack and the battle view. The backpack shows the progress of every set (e.g. "🔥 Fire 1/3"), and the battle view shows each fighter's active bonuses, a burn counter and burn events in the combat log.
+- The rules panel has a new "Item sets" section, and burn is explained in the battle rules and tooltips. All texts are built from the same constants as the simulation.
+- Added Vitest tests for set definitions, distinct counting, bonuses for player and opponents, and burn timing, decay, block absorption and the comparison with poison.

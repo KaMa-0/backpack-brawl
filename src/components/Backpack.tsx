@@ -1,9 +1,10 @@
 import { TICK_SECONDS } from "../battle";
 import { describeEffects, getItem } from "../items";
-import { BACKPACK_COLS } from "../shop";
+import { BACKPACK_COLS, itemIdsOf } from "../shop";
 import { moveBlocker, sellBlocker } from "../run";
 import type { Backpack as BackpackSlots, ItemDef, RunState } from "../types";
 import { useState } from "react";
+import { SetBadge, SetProgress } from "./SetBadge";
 
 /** Hover text for a backpack slot: name, effects and cooldown. */
 const tooltip = (item: ItemDef) =>
@@ -62,6 +63,7 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
                 <>
                   <button type="button" onClick={() => handleSlot(index)} aria-label={`${isSelected ? "Selected" : "Select"} ${item.name}`} className="flex h-full w-full flex-col items-center justify-center gap-1">
                     <span className="text-3xl leading-none sm:text-4xl" aria-hidden>{item.icon}</span>
+                    {item.set && <SetBadge setId={item.set} compact className="absolute left-1 top-1" />}
                     <span className="text-center text-xs leading-tight">{item.name}</span>
                   </button>
                   {selected === null && (
@@ -77,6 +79,9 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
           );
         })}
       </ul>
+      <div className="mt-3">
+        <SetProgress itemIds={itemIdsOf(backpack)} />
+      </div>
     </section>
   );
 }
