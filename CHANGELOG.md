@@ -15,3 +15,16 @@
 - Movement uses the existing shopping-phase guard, so it cannot occur during search or battle.
 - Added and documented the arrangement rules in the shop's rules panel.
 - Added three Vitest tests covering empty-slot moves, occupied-slot swaps, and invalid move attempts.
+
+## B3 — Status effects
+
+- Added **poison** and **heal** effects to items and to the battle simulation (`src/battle.ts`).
+  - Poison adds stacks to the enemy. Every 2 ticks (1 s) a poisoned fighter loses 1 HP per stack. Poison ignores block, and stacks add up and never decay during a battle.
+  - Heal restores the owner's HP, never above max HP. A knocked-out fighter can't be healed.
+  - Order within a tick: items fire (player first, then opponent; per item damage → poison → block → heal), then poison deals damage, then knockouts are checked. Everything is deterministic.
+- Added rare **poisoned weapons**: Poisoned Dagger, Poisoned Bow, Poisoned Cleaver and Poisoned Spiked Shield. Same stats as the normal weapon plus ☠️ 2 poison, 2 🪙 more expensive. In the shop, each weapon offer turns into its poisoned version with a 25% chance, using the seeded RNG.
+- Added three **heal items**: 🌿 Healing Herb (2 🪙, every 2 s, +2), 💕 Love Charm (3 🪙, every 2.5 s, +3) and 🧪 Health Potion (5 🪙, every 4 s, +7).
+- Later opponents now use heal and poisoned items (Rusted Knight, Pit Gladiator, Ash Golem, Hollow King).
+- Battle view shows a poison counter per fighter, and the combat log shows poison applied, poison damage and heals in their own colours. The rules panel and tooltips explain both effects; all texts are built from the same constants as the simulation.
+- Rare poisoned items have a green border and a "Rare poisoned version" badge in the shop and the backpack.
+- Added Vitest tests for poison timing, block bypass, no decay, heal cap, no revive, determinism, catalog requirements and shop variant rolls.
