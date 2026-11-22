@@ -6,6 +6,7 @@ export const START_GOLD = 10;
 export const START_LIVES = 3;
 export const WINS_TO_VICTORY = 5;
 export const GOLD_PER_ROUND = 5;
+export const REROLL_COST = 1;
 
 export function newRun(seed: number): RunState {
   const roll = rollShop(seed);
@@ -29,6 +30,7 @@ export function firstFreeSlot(state: RunState): number {
 export function buyBlocker(state: RunState, offerIndex: number): string | null {
   const itemId = state.shop[offerIndex];
   if (!itemId) return "Already sold";
+  if (firstFreeSlot(state) === -1) return "Backpack full";
   if (state.gold < getItem(itemId).price) return "Not enough gold";
   return null;
 }
@@ -64,4 +66,34 @@ export function startNextRound(state: RunState): RunState {
 export function applyBattleResult(state: RunState, winner: Side): RunState {
   const scored = winner === "player" ? { ...state, wins: state.wins + 1 } : { ...state, lives: state.lives - 1 };
   return runOutcome(scored) ? scored : startNextRound(scored);
+}
+
+/** Why a backpack item cannot be sold, or `null` if it can. */
+export function sellBlocker(state: RunState, slotIndex: number): string | null {
+  const slot = state.backpack[slotIndex];
+  if (!slot) return "Empty slot";
+  return null;
+}
+
+/** Sells an owned item for half its price, rounded down. */
+export function sellItem(state: RunState, slotIndex: number): RunState {
+  if (sellBlocker(state, slotIndex) !== null) return state;
+  const slot = state.backpack[slotIndex]!;
+  const proceeds = Math.floor(getItem(slot.itemId).price / 2);
+  const backpack = [...state.backpack];
+  backpack[slotIndex] = null;
+  return { ...state, gold: state.gold + proceeds, backpack };
+}
+
+/** Why the shop cannot be rerolled, or `null` if it can. */
+export function rerollBlocker(state: RunState): string | null {
+  if (state.gold < REROLL_COST) return `Need ${REROLL_COST} 🪙`;
+  return null;
+}
+
+/** Rolls fresh offers for 1 gold, replacing sold offers too. */
+export function rerollShop(state: RunState): RunState {
+  if (rerollBlocker(state) !== null) return state;
+  const roll = rollShop(state.seed);
+  return { ...state, gold: state.gold - REROLL_COST, seed: roll.seed, shop: roll.offers };
 }
