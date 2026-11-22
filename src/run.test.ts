@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { newGame, updateRun } from "./game";
 import { getItem } from "./items";
-import { buyItem, buyBlocker, newRun, rerollBlocker, rerollShop, sellItem } from "./run";
+import { buyItem, buyBlocker, moveBlocker, moveItem, newRun, rerollBlocker, rerollShop, sellItem } from "./run";
 
 describe("B1 shop economy", () => {
   it("buys one item once and leaves no duplicate or lost gold", () => {
@@ -65,5 +65,44 @@ describe("B1 shop economy", () => {
     const searching = { ...initial, phase: "searching" as const };
     expect(updateRun(searching, () => sellItem(searching.run, 0))).toBe(searching);
     expect(updateRun(searching, () => rerollShop(searching.run))).toBe(searching);
+  });
+});
+
+describe("B2 backpack arrangement", () => {
+  it("moves an item into an empty slot without duplicating it", () => {
+    const initial = newRun(202);
+    const bought = buyItem(initial, 0);
+    const from = bought.backpack.findIndex((slot) => slot !== null);
+    const to = bought.backpack.findIndex((slot) => slot === null);
+    const itemUid = bought.backpack[from]!.uid;
+
+    const moved = moveItem(bought, from, to);
+
+    expect(moved.backpack[to]?.uid).toBe(itemUid);
+    expect(moved.backpack[from]).toBeNull();
+    expect(moved.backpack.filter((slot) => slot?.uid === itemUid)).toHaveLength(1);
+  });
+
+  it("swaps two occupied slots", () => {
+    const initial = newRun(203);
+    let run = buyItem(initial, 0);
+    run = buyItem(run, 1);
+    const first = run.backpack[0];
+    const second = run.backpack[1];
+
+    const moved = moveItem(run, 0, 1);
+
+    expect(moved.backpack[0]).toBe(second);
+    expect(moved.backpack[1]).toBe(first);
+  });
+
+  it("rejects invalid, empty-source, and same-slot moves", () => {
+    const initial = newRun(204);
+    const bought = buyItem(initial, 0);
+
+    expect(moveBlocker(bought, 0, 0)).toBe("Choose a different slot");
+    expect(moveBlocker(bought, 5, 0)).toBe("Select an occupied slot");
+    expect(moveBlocker(bought, -1, 0)).toBe("Invalid slot");
+    expect(moveItem(bought, 0, 0)).toBe(bought);
   });
 });

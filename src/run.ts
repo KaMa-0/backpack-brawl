@@ -68,6 +68,25 @@ export function applyBattleResult(state: RunState, winner: Side): RunState {
   return runOutcome(scored) ? scored : startNextRound(scored);
 }
 
+/** Why one backpack slot cannot move to another, or `null` if it can. */
+export function moveBlocker(state: RunState, fromIndex: number, toIndex: number): string | null {
+  if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return "Invalid slot";
+  if (fromIndex < 0 || fromIndex >= state.backpack.length || toIndex < 0 || toIndex >= state.backpack.length) return "Invalid slot";
+  if (fromIndex === toIndex) return "Choose a different slot";
+  if (!state.backpack[fromIndex]) return "Select an occupied slot";
+  return null;
+}
+
+/** Moves an item, swapping when the destination is occupied. */
+export function moveItem(state: RunState, fromIndex: number, toIndex: number): RunState {
+  if (moveBlocker(state, fromIndex, toIndex) !== null) return state;
+  const backpack = [...state.backpack];
+  const from = backpack[fromIndex];
+  backpack[fromIndex] = backpack[toIndex];
+  backpack[toIndex] = from;
+  return { ...state, backpack };
+}
+
 /** Why a backpack item cannot be sold, or `null` if it can. */
 export function sellBlocker(state: RunState, slotIndex: number): string | null {
   const slot = state.backpack[slotIndex];

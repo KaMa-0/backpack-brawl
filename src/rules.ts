@@ -48,6 +48,7 @@ export const RULES: RuleSection[] = [
       `Sell a backpack item for half its price, rounded down. Reroll the shop offers for 1 🪙.`,
       `Backpack actions are available only while shopping.`,
       `Only items in your backpack fight. Their position doesn't matter.`,
+      `Select a backpack item to move it; choose another slot to move or swap. Use Cancel to clear the selection.`,
     ],
   },
   {
