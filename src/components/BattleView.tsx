@@ -1,6 +1,7 @@
 import { TICK_SECONDS, MAX_TICKS } from "../battle";
-import { getItem } from "../items";
+import { describeEffects, getItem } from "../items";
 import { STATUS_HELP } from "../rules";
+import { ActiveSets, SetBadge } from "./SetBadge";
 import type { BattleEvent, BattleEventKind, BattleReplay, Fighter, FighterSnapshot, Side } from "../types";
 
 interface BattleViewProps {
@@ -91,17 +92,20 @@ export function BattleView({ battle, done, continueLabel, onSkip, onContinue }: 
 /** Hero actions | time | enemy actions. */
 const LOG_ROW = "grid grid-cols-[1fr_auto_1fr] items-start gap-2";
 
-/** Text colour per event: damage red, poison green, heal pink, everything else neutral. */
+/** Text colour per event: damage red, poison green, heal pink, burn orange, everything else neutral. */
 const EVENT_COLOUR: Partial<Record<BattleEventKind, string>> = {
   damage: "text-life",
   poison: "text-poison",
   "poison-tick": "text-poison",
+  burn: "text-burn",
+  "burn-tick": "text-burn",
   heal: "text-heal",
 };
 
 /** Icon for events that don't come from an item. */
 const STATUS_ICON: Partial<Record<BattleEventKind, string>> = {
   "poison-tick": "☠️",
+  "burn-tick": "🔥",
 };
 
 function LogLine({ event }: { event: BattleEvent }) {
@@ -131,7 +135,7 @@ interface FighterPanelProps {
 }
 
 function FighterPanel({ side, icon, fighter, snapshot }: FighterPanelProps) {
-  const { hp, maxHp, block, poison } = snapshot;
+  const { hp, maxHp, block, poison, burn } = snapshot;
   const knockedOut = hp <= 0;
 
   return (
@@ -148,23 +152,35 @@ function FighterPanel({ side, icon, fighter, snapshot }: FighterPanelProps) {
 
       <Bar label="HP" value={hp} max={maxHp} text={`${hp} / ${maxHp}`} colour="bg-life" help={STATUS_HELP.hp} />
       <Bar label="Block" value={block} max={maxHp} text={`🛡️ ${block}`} colour="bg-block" help={STATUS_HELP.block} />
-      <p
-        title={STATUS_HELP.poison}
-        aria-label={`Poison stacks: ${poison}`}
-        className={`flex cursor-help justify-between text-xs ${poison > 0 ? "font-bold text-poison" : "text-muted"}`}
-      >
-        <span>Poison</span>
-        <span className="font-mono">☠️ {poison}</span>
-      </p>
+      <Status label="Poison" icon="☠️" value={poison} colour="text-poison" help={STATUS_HELP.poison} />
+      <Status label="Burn" icon="🔥" value={burn} colour="text-burn" help={STATUS_HELP.burn} />
 
       <ul className="flex flex-wrap gap-1" aria-label="Items">
         {fighter.items.map((item, index) => (
-          <li key={index} title={item.name} className="rounded bg-ink/50 px-1.5 py-0.5 text-xl">
+          <li
+            key={index}
+            title={[item.name, ...describeEffects(item.effects).map(({ label }) => label)].join("\n")}
+            className="relative rounded bg-ink/50 px-1.5 py-0.5 text-xl"
+          >
             {item.icon}
+            {item.set && <SetBadge setId={item.set} compact className="absolute -right-1 -top-2 px-0.5 text-[10px] leading-4" />}
           </li>
         ))}
       </ul>
+      <ActiveSets sets={fighter.activeSets} />
     </article>
+  );
+}
+
+/** One status counter (poison, burn); highlighted while it has stacks. */
+function Status({ label, icon, value, colour, help }: { label: string; icon: string; value: number; colour: string; help: string }) {
+  return (
+    <p title={help} aria-label={`${label} stacks: ${value}`} className={`flex cursor-help justify-between text-xs ${value > 0 ? `font-bold ${colour}` : "text-muted"}`}>
+      <span>{label}</span>
+      <span className="font-mono">
+        {icon} {value}
+      </span>
+    </p>
   );
 }
 

@@ -5,7 +5,12 @@ export interface ItemEffects {
   poison?: number;
   /** HP restored to the item's owner (never above max HP). */
   heal?: number;
+  /** Burn stacks added to the enemy. Only granted by the Fire set bonus. */
+  burn?: number;
 }
+
+/** Item sets; 2+ different items of a set activate its bonus. */
+export type SetId = "fire" | "guardian";
 
 export interface ItemDef {
   id: string;
@@ -15,6 +20,8 @@ export interface ItemDef {
   /** Cooldown in battle ticks (1 tick = 0.5 s). */
   cooldown: number;
   effects: ItemEffects;
+  /** Item set this item belongs to, if any. */
+  set?: SetId;
   /** Set on rare variants (e.g. poisoned weapons): id of the base item they replace in the shop. */
   variantOf?: string;
 }
@@ -63,10 +70,12 @@ export interface FighterSnapshot {
   block: number;
   /** Poison stacks on this fighter. */
   poison: number;
+  /** Burn stacks on this fighter. */
+  burn: number;
 }
 
-/** `poison` = stacks applied by an item, `poison-tick` = HP lost to poison. */
-export type BattleEventKind = "damage" | "block" | "poison" | "poison-tick" | "heal";
+/** `poison`/`burn` = stacks applied by an item, `poison-tick`/`burn-tick` = damage dealt by the status. */
+export type BattleEventKind = "damage" | "block" | "poison" | "poison-tick" | "heal" | "burn" | "burn-tick";
 
 export interface BattleEvent {
   tick: number;
@@ -102,7 +111,9 @@ export interface FighterItem {
   name: string;
   icon: string;
   cooldown: number;
+  /** Catalog effects plus any active set bonus. */
   effects: ItemEffects;
+  set?: SetId;
 }
 
 /** Everything `simulateBattle` needs to know about one side. */
@@ -110,6 +121,8 @@ export interface Fighter {
   name: string;
   maxHp: number;
   items: FighterItem[];
+  /** Sets whose bonus is active for this fighter. */
+  activeSets: SetId[];
 }
 
 /** A simulated battle being replayed frame by frame. */

@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { buildFighter, POISON_INTERVAL, simulateBattle } from "./battle";
+import {
+  BURN_DAMAGE_PER_STACK,
+  BURN_DECAY,
+  BURN_INTERVAL,
+  buildFighter,
+  POISON_DAMAGE_PER_STACK,
+  POISON_INTERVAL,
+  simulateBattle,
+} from "./battle";
+import { FIRE_BURN_STACKS } from "./sets";
 import { CATALOG, getItem, POISONED_EXTRA_PRICE, POISONED_STACKS } from "./items";
 import type { Fighter, ItemEffects } from "./types";
 
 /** A fighter with one test item, so each rule can be checked in isolation. */
 function fighter(name: string, maxHp: number, cooldown: number, effects: ItemEffects): Fighter {
-  return { name, maxHp, items: [{ itemId: "chipped-dagger", name: `${name}'s item`, icon: "🧪", cooldown, effects }] };
+  return { name, maxHp, activeSets: [], items: [{ itemId: "chipped-dagger", name: `${name}'s item`, icon: "🧪", cooldown, effects }] };
 }
 
 describe("poison", () => {
@@ -76,5 +85,36 @@ describe("status effects in the catalog", () => {
     const player = buildFighter(["poisoned-dagger", "love-charm", "oak-buckler"], 40, "Hero");
     const enemy = buildFighter(["poisoned-bow", "health-potion", "spiked-shield"], 50, "Rival");
     expect(simulateBattle(player, enemy)).toEqual(simulateBattle(player, enemy));
+  });
+});
+
+describe("burn", () => {
+  it("deals damage every tick, then decays", () => {
+    const result = simulateBattle(fighter("Target", 100, 1000, {}), fighter("Pyro", 100, 1, { burn: 3 }));
+    // Tick 1: +3 stacks, burn deals 3, then decays. Tick 2: +3 more, burn deals 5, then decays.
+    expect(result.frames[1].player).toMatchObject({ hp: 97, burn: 3 - BURN_DECAY });
+    expect(result.frames[2].player).toMatchObject({ hp: 92, burn: 5 - BURN_DECAY });
+    expect(result.events.find((event) => event.kind === "burn-tick")).toMatchObject({ tick: 1, target: "player", source: "opponent", amount: 3 });
+  });
+
+  it("wears off when no new burn is added", () => {
+    // Pyro fires at tick 8 only (and again at 16): the burn fades 3 → 2 → 1 → 0 in between.
+    const result = simulateBattle(fighter("Target", 1000, 1000, {}), fighter("Pyro", 1000, 8, { burn: 3 }));
+    expect(result.frames.slice(8, 12).map((frame) => frame.player.burn)).toEqual([2, 1, 0, 0]);
+    expect(result.frames[11].player.hp).toBe(1000 - 3 - 2 - 1);
+  });
+
+  it("is absorbed by block first", () => {
+    const result = simulateBattle(fighter("Target", 100, 1, { block: 10 }), fighter("Pyro", 100, 1, { burn: 3 }));
+    // Tick 1: the target gains 10 block, then the 3 burn damage only hits the block.
+    expect(result.frames[1].player).toMatchObject({ hp: 100, block: 7 });
+    expect(result.events.find((event) => event.kind === "burn-tick")?.message).toContain("3 blocked");
+  });
+
+  it("stacks faster and deals more damage than poison", () => {
+    expect(FIRE_BURN_STACKS).toBeGreaterThan(POISONED_STACKS);
+    const burnPerStackPerTick = BURN_DAMAGE_PER_STACK / BURN_INTERVAL;
+    const poisonPerStackPerTick = POISON_DAMAGE_PER_STACK / POISON_INTERVAL;
+    expect(burnPerStackPerTick).toBeGreaterThan(poisonPerStackPerTick);
   });
 });
