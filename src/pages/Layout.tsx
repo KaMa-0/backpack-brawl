@@ -1,7 +1,10 @@
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { ROUTES } from "../game";
 
 export function Layout() {
+  const location = useLocation();
+  const isHallOfFame = location.pathname === ROUTES.hall;
+
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4">
       <header className="flex items-center justify-between border-b-2 border-panel-edge py-4">
@@ -10,12 +13,21 @@ export function Layout() {
             🎒 Backpack <span className="text-gold">Brawl</span>
           </Link>
         </h1>
-        <Link
-          to={ROUTES.hall}
-          className="rounded-md border border-panel-edge px-3 py-2 text-sm font-bold hover:border-gold"
-        >
-          🏆 Hall of Fame
-        </Link>
+        {isHallOfFame ? (
+          <Link
+            to={ROUTES.start}
+            className="rounded-md border border-panel-edge px-3 py-2 text-sm font-bold hover:border-gold"
+          >
+            ← Back
+          </Link>
+        ) : (
+          <Link
+            to={ROUTES.hall}
+            className="rounded-md border border-panel-edge px-3 py-2 text-sm font-bold hover:border-gold"
+          >
+            🏆 Hall of Fame
+          </Link>
+        )}
       </header>
 
       <main className="flex flex-1 flex-col gap-4 py-6">
