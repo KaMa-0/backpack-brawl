@@ -1,6 +1,6 @@
 import { hasItem } from "./items";
 import { BACKPACK_SIZE } from "./shop";
-import type { Opponent } from "./types";
+import type { HallEntry, HallRunPayload, Opponent } from "./types";
 
 /** A search that takes longer than this is given up. The API answers within 5 s at most. */
 export const SEARCH_TIMEOUT_MS = 8000;
@@ -95,4 +95,27 @@ export function parseOpponent(data: unknown): Opponent | null {
     items.length <= BACKPACK_SIZE &&
     items.every((item) => typeof item === "string" && hasItem(item));
   return valid ? { id, name, icon, hp, round, items: [...(items as string[])] } : null;
+}
+
+export async function fetchHallOfFame(): Promise<HallEntry[]> {
+  const response = await fetch("/api/hall-of-fame");
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Could not load the hall of fame (${response.status})`);
+  }
+  const body = await response.json() as { entries?: HallEntry[] };
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+export async function submitHallRun(payload: HallRunPayload): Promise<{ entry: HallEntry; duplicate: boolean }> {
+  const response = await fetch("/api/hall-of-fame", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Could not submit this run (${response.status})`);
+  }
+  return response.json() as Promise<{ entry: HallEntry; duplicate: boolean }>;
 }

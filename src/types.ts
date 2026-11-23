@@ -41,6 +41,8 @@ export type ShopOffers = (string | null)[];
 export type Phase = "shop" | "searching" | "battle" | "finished";
 
 export interface RunState {
+  /** Stable identifier used to make Hall of Fame submission idempotent. */
+  runId: string;
   round: number;
   gold: number;
   lives: number;
@@ -153,4 +155,23 @@ export interface GameState {
   search: ActiveSearch | null;
   /** Last opponent-search error, shown in the shop. */
   error: string | null;
+}
+
+export interface HallRunPayload {
+  runId: string;
+  name: string;
+  wins: number;
+  lives: number;
+  rounds: number;
+}
+
+export interface HallEntry {
+  rank: number;
+  runId: string;
+  name: string;
+  wins: number;
+  lives: number;
+  rounds: number;
+  victory: boolean;
+  submittedAt: number;
 }
