@@ -94,11 +94,16 @@ export function sellBlocker(state: RunState, slotIndex: number): string | null {
   return null;
 }
 
-/** Sells an owned item for half its price, rounded down. */
+/** Gold a sold item brings back: half its price, rounded down. */
+export function sellPrice(itemId: string): number {
+  return Math.floor(getItem(itemId).price / 2);
+}
+
+/** Sells an owned item for `sellPrice`. */
 export function sellItem(state: RunState, slotIndex: number): RunState {
   if (sellBlocker(state, slotIndex) !== null) return state;
   const slot = state.backpack[slotIndex]!;
-  const proceeds = Math.floor(getItem(slot.itemId).price / 2);
+  const proceeds = sellPrice(slot.itemId);
   const backpack = [...state.backpack];
   backpack[slotIndex] = null;
   return { ...state, gold: state.gold + proceeds, backpack };

@@ -9,7 +9,7 @@ import {
   TICK_SECONDS,
 } from "./battle";
 import { POISONED_EXTRA_PRICE } from "./items";
-import { GOLD_PER_ROUND, START_GOLD, START_LIVES, WINS_TO_VICTORY } from "./run";
+import { GOLD_PER_ROUND, REROLL_COST, START_GOLD, START_LIVES, WINS_TO_VICTORY } from "./run";
 import { SET_IDS, SET_THRESHOLD, SETS, setMembers } from "./sets";
 import { BACKPACK_COLS, BACKPACK_ROWS, POISON_VARIANT_CHANCE, SHOP_SIZE } from "./shop";
 import type { ItemEffects, SetId } from "./types";
@@ -77,10 +77,10 @@ export const RULES: RuleSection[] = [
       `The shop offers ${SHOP_SIZE} new items every round.`,
       `Weapons sometimes show up as rare poisoned versions (${POISON_VARIANT_CHANCE * 100}% chance per weapon offer). They cost ${POISONED_EXTRA_PRICE} 🪙 more.`,
       `Bought items go to the first free slot of your ${BACKPACK_COLS}×${BACKPACK_ROWS} backpack and stay there for the whole run.`,
-      `Sell a backpack item for half its price, rounded down. Reroll the shop offers for 1 🪙.`,
+      `Sell a backpack item for half its price, rounded down. Reroll the shop offers for ${REROLL_COST} 🪙.`,
       `Backpack actions are available only while shopping.`,
       `Only items in your backpack fight. Their position doesn't matter.`,
-      `Select a backpack item to move it; choose another slot to move or swap. Use Cancel to clear the selection.`,
+      `Select a backpack item to move it; choose another slot to move or swap. Use Cancel to clear the selection. While an item is selected, Sell is hidden so nothing is sold by accident.`,
     ],
   },
   {

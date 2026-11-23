@@ -1,17 +1,23 @@
 import type { ReactNode } from "react";
 import { TICK_SECONDS } from "../battle";
 import { describeEffects } from "../items";
-import { COOLDOWN_HELP, EFFECT_HELP, RARE_HELP } from "../rules";
-import type { ItemDef } from "../types";
+import { COOLDOWN_HELP, EFFECT_HELP, RARE_HELP, setHelp } from "../rules";
+import { SETS, withSetBonus } from "../sets";
+import type { ItemDef, SetId } from "../types";
 import { SetBadge } from "./SetBadge";
 
 interface ItemCardProps {
   item: ItemDef;
+  /** Sets that would be active with this item; their bonus is included in the shown effects. */
+  activeSets?: SetId[];
   /** Extra content below the stats, e.g. a buy button. */
   children?: ReactNode;
 }
 
-export function ItemCard({ item, children }: ItemCardProps) {
+export function ItemCard({ item, activeSets = [], children }: ItemCardProps) {
+  const effects = withSetBonus(item, activeSets);
+  const bonusSet = item.set && activeSets.includes(item.set) ? item.set : null;
+
   return (
     <article className={`flex flex-col gap-2 rounded-lg border-2 bg-ink/40 p-3 ${item.variantOf ? "border-poison/70" : "border-gold/40"}`}>
       <div className="flex items-start gap-3">
@@ -29,7 +35,7 @@ export function ItemCard({ item, children }: ItemCardProps) {
         </div>
       </div>
       <ul className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-        {describeEffects(item.effects).map(({ effect, label }) => (
+        {describeEffects(effects).map(({ effect, label }) => (
           <li key={effect} title={EFFECT_HELP[effect]} className={HELP}>
             {label}
           </li>
@@ -38,6 +44,11 @@ export function ItemCard({ item, children }: ItemCardProps) {
           ⏱️ every {item.cooldown * TICK_SECONDS}s
         </li>
       </ul>
+      {bonusSet && (
+        <p title={setHelp(bonusSet)} className={`text-xs font-bold text-gold ${HELP}`}>
+          ✓ {SETS[bonusSet].name} bonus included
+        </p>
+      )}
       {children}
     </article>
   );

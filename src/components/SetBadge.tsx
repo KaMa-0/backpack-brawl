@@ -9,7 +9,7 @@ export function SetBadge({ setId, compact = false, className = "" }: { setId: Se
     <span
       title={setHelp(setId)}
       aria-label={`${set.name} set`}
-      className={`cursor-help rounded bg-ink/60 px-1 text-xs font-bold leading-5 ${setId === "fire" ? "text-burn" : "text-block"} ${className}`}
+      className={`cursor-help rounded bg-ink/60 px-1 text-xs font-bold leading-5 ${set.colour} ${className}`}
     >
       {set.icon}
       {!compact && ` ${set.name}`}
@@ -17,18 +17,13 @@ export function SetBadge({ setId, compact = false, className = "" }: { setId: Se
   );
 }
 
-/**
- * Progress of every set for a list of item ids, e.g. "🔥 Fire 1/3".
- * With `onlyActive`, lists just the active bonuses (used in battle).
- */
-export function SetProgress({ itemIds, onlyActive = false }: { itemIds: string[]; onlyActive?: boolean }) {
+/** Progress of every set for a list of item ids, e.g. "🔥 Fire 1/3". */
+export function SetProgress({ itemIds }: { itemIds: string[] }) {
   const counts = setCounts(itemIds);
-  const shown = SET_IDS.filter((id) => !onlyActive || counts[id] >= SET_THRESHOLD);
-  if (shown.length === 0) return onlyActive ? <p className="text-xs text-muted">No set bonus active</p> : null;
 
   return (
     <ul className="flex flex-col gap-1 text-xs" aria-label="Set bonuses">
-      {shown.map((id) => {
+      {SET_IDS.map((id) => {
         const set = SETS[id];
         const active = counts[id] >= SET_THRESHOLD;
         return (
@@ -44,6 +39,24 @@ export function SetProgress({ itemIds, onlyActive = false }: { itemIds: string[]
           </li>
         );
       })}
+    </ul>
+  );
+}
+
+/** A fighter's active set bonuses in battle (from `Fighter.activeSets`). */
+export function ActiveSets({ sets }: { sets: SetId[] }) {
+  if (sets.length === 0) return <p className="text-xs text-muted">No set bonus active</p>;
+
+  return (
+    <ul className="flex flex-col gap-1 text-xs" aria-label="Active set bonuses">
+      {sets.map((id) => (
+        <li key={id} title={setHelp(id)} className="cursor-help rounded border border-gold bg-gold/10 px-2 py-1 text-parchment">
+          <span className="font-bold">
+            {SETS[id].icon} {SETS[id].name}
+          </span>{" "}
+          ✓ {SETS[id].bonusText}
+        </li>
+      ))}
     </ul>
   );
 }

@@ -1,5 +1,7 @@
 import { getItem } from "../items";
 import { buyBlocker, REROLL_COST, rerollBlocker } from "../run";
+import { activeSets } from "../sets";
+import { itemIdsOf } from "../shop";
 import type { RunState } from "../types";
 import { ItemCard } from "./ItemCard";
 
@@ -26,7 +28,7 @@ export function Shop({ run, onBuy, onReroll }: ShopProps) {
           const blocker = buyBlocker(run, index);
           return (
             <li key={index}>
-              <ItemCard item={item}>
+              <ItemCard item={item} activeSets={activeSets([...itemIdsOf(run.backpack), itemId])}>
                 <button
                   type="button"
                   onClick={() => onBuy(index)}

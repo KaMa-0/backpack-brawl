@@ -1,17 +1,24 @@
 import { TICK_SECONDS } from "../battle";
 import { describeEffects, getItem } from "../items";
 import { BACKPACK_COLS, itemIdsOf } from "../shop";
-import { moveBlocker, sellBlocker } from "../run";
-import type { Backpack as BackpackSlots, ItemDef, RunState } from "../types";
+import { moveBlocker, sellBlocker, sellPrice } from "../run";
+import { activeSets, SETS, withSetBonus } from "../sets";
+import type { Backpack as BackpackSlots, ItemDef, RunState, SetId } from "../types";
 import { useState } from "react";
 import { SetBadge, SetProgress } from "./SetBadge";
 
-/** Hover text for a backpack slot: name, effects and cooldown. */
-const tooltip = (item: ItemDef) =>
-  [item.name, ...describeEffects(item.effects).map(({ label }) => label), `⏱️ every ${item.cooldown * TICK_SECONDS}s`].join("\n");
+/** Hover text for a backpack slot: name, effects (with active set bonus) and cooldown. */
+const tooltip = (item: ItemDef, active: SetId[]) =>
+  [
+    item.name,
+    ...describeEffects(withSetBonus(item, active)).map(({ label }) => label),
+    ...(item.set && active.includes(item.set) ? [`✓ ${SETS[item.set].name} bonus included`] : []),
+    `⏱️ every ${item.cooldown * TICK_SECONDS}s`,
+  ].join("\n");
 
 export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slotIndex: number) => void; onMove: (fromIndex: number, toIndex: number) => void }) {
   const backpack: BackpackSlots = run.backpack;
+  const active = activeSets(itemIdsOf(backpack));
   const [selected, setSelected] = useState<number | null>(null);
 
   function handleSlot(index: number) {
@@ -34,7 +41,11 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h2 className="font-display text-xl font-bold">🎒 Backpack</h2>
-          <p className="text-sm text-muted">Select an item, then choose another slot.</p>
+          <p className="text-sm text-muted">
+            {selected === null
+              ? "Select an item, then choose another slot."
+              : "Choose a slot to move or swap. Selling is paused so nothing is sold by accident."}
+          </p>
         </div>
         {selected !== null && (
           <button type="button" onClick={() => setSelected(null)} className="rounded-md border border-panel-edge px-2 py-1 text-xs text-muted hover:border-gold hover:text-gold">
@@ -50,7 +61,7 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
           return (
             <li
               key={slot?.uid ?? `empty-${index}`}
-              title={item ? tooltip(item) : undefined}
+              title={item ? tooltip(item, active) : undefined}
               aria-label={item ? item.name : `Empty slot ${index + 1}`}
               className={[
                 "relative flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-2 p-1",
@@ -67,8 +78,8 @@ export function Backpack({ run, onSell, onMove }: { run: RunState; onSell: (slot
                     <span className="text-center text-xs leading-tight">{item.name}</span>
                   </button>
                   {selected === null && (
-                    <button type="button" onClick={() => onSell(index)} title={sellBlocker(run, index) ?? `Sell for ${Math.floor(item.price / 2)} 🪙`} className="absolute bottom-1 rounded bg-panel px-1 text-xs font-bold text-gold hover:brightness-125">
-                      Sell · {Math.floor(item.price / 2)} 🪙
+                    <button type="button" onClick={() => onSell(index)} title={sellBlocker(run, index) ?? `Sell for ${sellPrice(item.id)} 🪙`} className="absolute bottom-1 rounded bg-panel px-1 text-xs font-bold text-gold hover:brightness-125">
+                      Sell · {sellPrice(item.id)} 🪙
                     </button>
                   )}
                 </>

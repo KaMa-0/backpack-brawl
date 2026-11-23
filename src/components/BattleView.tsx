@@ -1,7 +1,7 @@
 import { TICK_SECONDS, MAX_TICKS } from "../battle";
 import { describeEffects, getItem } from "../items";
 import { STATUS_HELP } from "../rules";
-import { SetBadge, SetProgress } from "./SetBadge";
+import { ActiveSets, SetBadge } from "./SetBadge";
 import type { BattleEvent, BattleEventKind, BattleReplay, Fighter, FighterSnapshot, Side } from "../types";
 
 interface BattleViewProps {
@@ -167,7 +167,7 @@ function FighterPanel({ side, icon, fighter, snapshot }: FighterPanelProps) {
           </li>
         ))}
       </ul>
-      <SetProgress itemIds={fighter.items.map((item) => item.itemId)} onlyActive />
+      <ActiveSets sets={fighter.activeSets} />
     </article>
   );
 }

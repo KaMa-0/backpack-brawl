@@ -12,6 +12,8 @@ export interface SetDef {
   id: SetId;
   name: string;
   icon: string;
+  /** Tailwind text colour class for the set's badge. */
+  colour: string;
   /** Effects added to every item of the set while the bonus is active. */
   bonus: ItemEffects;
   /** Player-facing description of the bonus. */
@@ -23,6 +25,7 @@ export const SETS: Record<SetId, SetDef> = {
     id: "fire",
     name: "Fire",
     icon: "🔥",
+    colour: "text-burn",
     bonus: { burn: FIRE_BURN_STACKS },
     bonusText: `Fire items also add ${FIRE_BURN_STACKS} 🔥 Burn to the enemy.`,
   },
@@ -30,6 +33,7 @@ export const SETS: Record<SetId, SetDef> = {
     id: "guardian",
     name: "Guardian",
     icon: "🛡️",
+    colour: "text-block",
     bonus: { block: GUARDIAN_EXTRA_BLOCK },
     bonusText: `Guardian items grant +${GUARDIAN_EXTRA_BLOCK} extra block.`,
   },
