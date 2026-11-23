@@ -11,7 +11,10 @@ export function FightBar({ phase, blocker, error, onFight }: FightBarProps) {
   const searching = phase === "searching";
 
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-panel-edge bg-panel p-4 sm:flex-row sm:items-center sm:justify-between">
+    <section
+      aria-busy={searching}
+      className="flex flex-col gap-2 rounded-lg border border-panel-edge bg-panel p-4 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div aria-live="polite">
         {error ? (
           <p role="alert" className="text-life">

@@ -40,3 +40,13 @@
 - Set badges are shown on items in the shop, the backpack and the battle view. The backpack shows the progress of every set (e.g. "🔥 Fire 1/3"), and the battle view shows each fighter's active bonuses, a burn counter and burn events in the combat log.
 - The rules panel has a new "Item sets" section, and burn is explained in the battle rules and tooltips. All texts are built from the same constants as the simulation.
 - Added Vitest tests for set definitions, distinct counting, bonuses for player and opponents, and burn timing, decay, block absorption and the comparison with poison.
+
+## B5 — Resilient matchmaking
+
+- Every opponent search gets a unique id, stored with its round in the new `GameState.search` (`src/game.ts`). `startBattle` and `searchFailed` only act on the search that is still running; slow, duplicate or late answers, and answers to older searches, change nothing. A battle can therefore never be restarted, started outside a search, or have its result applied twice.
+- An answer for another round ends the search with an error instead of starting a battle.
+- `fightBlocker` now blocks a second search while one is running (and any search outside the shop), and `startSearch` uses the same rule, so double clicks start only one search.
+- A failed search now returns to a usable shop (`phase: "shop"`) with the message, and the player can try again. Before, the game stayed in `searching` with a disabled shop.
+- `fetchOpponent` (`src/api.ts`) gives up after 8 s, turns network errors, proxy errors and timeouts into understandable messages, keeps the server's own error text, and validates the answer (shape, numbers, known item ids, at most 6 items) so an invalid opponent can't crash the battle.
+- The page URL can pass `fail` and `latency` to the API (e.g. `http://localhost:5174/?fail=true`) to show failures and delays without restarting the server. Documented in `docs/API.md`.
+- Added Vitest tests for the search rules (`src/game.test.ts`) and the API client (`src/api.test.ts`), including timeout, unreachable server, server error text and invalid answers.
