@@ -1,11 +1,13 @@
 import cors from "cors";
 import express from "express";
 import { opponentForRound, parseRound } from "./opponents.js";
+import { getHallEntries, submitHallRun } from "./hallOfFame.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4200);
 
-app.use(cors()); app.use(express.json());
+app.use(cors());
+app.use(express.json());
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "backpack-brawl" }));
 
 app.get("/api/opponents", (req, res) => {
@@ -19,6 +21,16 @@ app.get("/api/opponents", (req, res) => {
     }
     res.json(opponentForRound(round));
   }, latency);
+});
+
+app.get("/api/hall-of-fame", (_req, res) => {
+  res.json({ entries: getHallEntries() });
+});
+
+app.post("/api/hall-of-fame", (req, res) => {
+  const result = submitHallRun(req.body);
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.status(result.duplicate ? 200 : 201).json({ entry: result.entry, duplicate: result.duplicate });
 });
 
 app.listen(port, () => console.log(`Backpack Brawl API listening on http://localhost:${port}`));
