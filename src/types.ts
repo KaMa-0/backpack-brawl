@@ -137,12 +137,22 @@ export interface BattleReplay {
   frame: number;
 }
 
+/** The opponent search that is running right now. */
+export interface ActiveSearch {
+  /** Unique per search; only the answer to this search may start a battle. */
+  id: string;
+  /** Round the opponent was requested for. */
+  round: number;
+}
+
 /** Everything the UI needs: the run plus where in the round loop we are. */
 export interface GameState {
   phase: Phase;
   run: RunState;
   /** Set while `phase === "battle"`. */
   battle: BattleReplay | null;
+  /** Set while `phase === "searching"`. */
+  search: ActiveSearch | null;
   /** Last opponent-search error, shown in the shop. */
   error: string | null;
 }

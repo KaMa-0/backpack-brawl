@@ -57,6 +57,11 @@ export function getItem(id: string): ItemDef {
   return item;
 }
 
+/** True if `id` is an item of the catalog. */
+export function hasItem(id: string): boolean {
+  return byId.has(id);
+}
+
 /** The rare variant of a base item, if it has one. */
 export function variantOf(baseId: string): ItemDef | undefined {
   return VARIANTS.find((item) => item.variantOf === baseId);

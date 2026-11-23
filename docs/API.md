@@ -75,4 +75,19 @@ Example: `API_FAIL=true pnpm server`.
 
 ## Client
 
-`fetchOpponent(round)` in `src/api.ts` performs the request. It resolves with the `Opponent` on success and throws an `Error` carrying the server's `error` text (or a generic message with the status code) for any non-2xx response. When the API is not running, the Vite proxy answers with an error status of its own, which is reported the same way; a network failure rejects as well.
+`fetchOpponent(round)` in `src/api.ts` performs the request.
+
+- It resolves with the `Opponent` only if the answer has the documented shape: a positive whole `hp` and `round`, at most 6 `items`, and only item ids that exist in the catalog. Anything else is rejected instead of crashing the battle later.
+- It gives up after `SEARCH_TIMEOUT_MS` (8 s, above the API's maximum delay of 5 s).
+- It rejects with a player-facing message: the server's own `error` text when there is one, otherwise a generic text for an unreachable server (including the Vite proxy's error when the API is not running), a timeout or invalid data.
+
+### Test switches in the page URL
+
+`fail` and `latency` in the page URL are passed on to the API, so failures and delays can be shown without restarting the server. They are read once when the app loads, for example:
+
+- `http://localhost:5174/?fail=true`: every search fails with 503.
+- `http://localhost:5174/?latency=5000`: every answer takes 5 seconds.
+
+### Late and duplicate answers
+
+The client does not decide whether an answer is still wanted. Every search gets a unique id (`startSearch` in `src/game.ts`), and `startBattle` / `searchFailed` only act if that id is still the running search and the opponent is for the searched round. Slow, duplicate or late answers therefore change nothing.

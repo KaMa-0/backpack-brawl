@@ -8,6 +8,9 @@ import { fightBlocker, searchFailed, startBattle, startSearch, updateRun } from 
 import { buyItem, moveItem, rerollShop, sellItem } from "../run";
 import { useActiveGame } from "../state/GameContext";
 
+/** A new id for every search, so answers to older searches can be recognised and ignored. */
+const newSearchId = () => `search-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 export function ShopPage() {
   const { game, update } = useActiveGame();
   const { run, phase } = game;
@@ -29,15 +32,18 @@ export function ShopPage() {
   }
 
   // Once the opponent is found the phase becomes "battle" and RequireRoute redirects to the battle page.
+  // The answer is passed to the game together with its search id; the game ignores it unless
+  // that search is still the current one (late, duplicate or replaced searches change nothing).
   async function handleFindOpponent() {
     if (fightBlocker(game) !== null) return;
-    update(startSearch);
+    const searchId = newSearchId();
+    update((current) => startSearch(current, searchId));
     try {
       const opponent = await fetchOpponent(run.round);
-      update((current) => startBattle(current, opponent));
+      update((current) => startBattle(current, searchId, opponent));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Opponent search failed.";
-      update((current) => searchFailed(current, message));
+      update((current) => searchFailed(current, searchId, message));
     }
   }
 
