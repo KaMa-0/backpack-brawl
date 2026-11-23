@@ -1,9 +1,12 @@
 import { Link, Outlet, useLocation } from "react-router";
-import { ROUTES } from "../game";
+import { ROUTES, routeForGame } from "../game";
+import { useGame } from "../state/GameContext";
 
 export function Layout() {
   const location = useLocation();
+  const { game } = useGame();
   const isHallOfFame = location.pathname === ROUTES.hall;
+  const backRoute = routeForGame(game);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4">
@@ -15,7 +18,7 @@ export function Layout() {
         </h1>
         {isHallOfFame ? (
           <Link
-            to={ROUTES.start}
+            to={backRoute}
             className="rounded-md border border-panel-edge px-3 py-2 text-sm font-bold hover:border-gold"
           >
             ← Back
