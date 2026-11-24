@@ -2,12 +2,15 @@ import { createContext, useContext } from "react";
 import type { GameState } from "../types";
 
 export interface GameContextValue {
-  /** The current run, or `null` before the first run was started. */
-  game: GameState | null;
-  /** Throws away the current run (if any) and starts a fresh one. */
+  /** The current run (restored from the browser or newly started). */
+  game: GameState;
+  /** Throws away the current run and starts a fresh one. */
   startNewRun: () => void;
-  /** Applies a pure transition from game.ts to the current run; ignored without a run. */
+  /** Applies a pure transition from game.ts to the current run. */
   update: (transition: (game: GameState) => GameState) => void;
+  /** Message about what a refresh changed (see `RESTORE_NOTICES`), or `null`. */
+  notice: string | null;
+  dismissNotice: () => void;
 }
 
 export const GameContext = createContext<GameContextValue | null>(null);
@@ -18,9 +21,5 @@ export function useGame(): GameContextValue {
   return context;
 }
 
-/** Like `useGame`, for pages that are only reachable with a run in progress (see `RequireRoute`). */
-export function useActiveGame(): GameContextValue & { game: GameState } {
-  const context = useGame();
-  if (!context.game) throw new Error("No run in progress");
-  return { ...context, game: context.game };
-}
+/** Used by the shop, battle and result pages. Since B6 there is always a run, so this is the same as `useGame`. */
+export const useActiveGame = useGame;

@@ -68,6 +68,7 @@ export const RULES: RuleSection[] = [
       `Reach ${WINS_TO_VICTORY} wins before you lose all ${START_LIVES} lives.`,
       `Each battle is one round: a win gives +1 win, a loss costs 1 life.`,
       `Opponents get tougher every round.`,
+      `💾 Your run is saved in this browser and continues after a refresh. Refreshing during a search cancels it at no cost; the opponent stays the same. Refreshing during a battle skips to its end, and the result counts.`,
     ],
   },
   {

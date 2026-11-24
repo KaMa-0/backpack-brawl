@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchOpponent, parseOpponent, SEARCH_ERRORS, unreachableWithStatus } from "./api";
+import { fetchHallOfFame, fetchOpponent, HALL_ERRORS, parseOpponent, SEARCH_ERRORS, submitHallRun, unreachableWithStatus } from "./api";
 
 const VALID = { id: "mossback-hermit", name: "Mossback Hermit", icon: "🐢", hp: 25, items: ["chipped-dagger", "pot-lid"], round: 1 };
 
@@ -87,3 +87,29 @@ describe("parseOpponent", () => {
     expect(parseOpponent({ ...VALID, items: Array(7).fill("pot-lid") })).toBeNull();
   });
 });
+
+describe("hall of fame requests", () => {
+  const entry = { rank: 1, runId: "run_abcdefgh", name: "Ada", wins: 5, lives: 1, rounds: 7, victory: true, submittedAt: 1 };
+
+  it("loads the entries and submits a run", async () => {
+    mockFetch(async () => json({ entries: [entry] }));
+    await expect(fetchHallOfFame()).resolves.toEqual([entry]);
+
+    const fetchMock = mockFetch(async () => json({ entry, duplicate: false }, 201));
+    await expect(submitHallRun({ runId: "run_abcdefgh", name: "Ada", wins: 5, lives: 1, rounds: 7 })).resolves.toEqual({ entry, duplicate: false });
+    expect(fetchMock.mock.calls[0][1]?.method).toBe("POST");
+  });
+
+  it("shows the server's validation error", async () => {
+    mockFetch(async () => json({ error: "Name must be 2–24 characters." }, 400));
+    await expect(submitHallRun({ runId: "run_abcdefgh", name: "A", wins: 5, lives: 1, rounds: 7 })).rejects.toThrow("Name must be 2–24 characters.");
+  });
+
+  it("explains an unreachable server instead of showing 'Failed to fetch'", async () => {
+    mockFetch(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await expect(fetchHallOfFame()).rejects.toThrow(HALL_ERRORS.unreachable);
+  });
+});
+

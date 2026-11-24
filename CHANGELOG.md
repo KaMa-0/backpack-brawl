@@ -50,3 +50,27 @@
 - `fetchOpponent` (`src/api.ts`) gives up after 8 s, turns network errors, proxy errors and timeouts into understandable messages, keeps the server's own error text, and validates the answer (shape, numbers, known item ids, at most 6 items) so an invalid opponent can't crash the battle.
 - The page URL can pass `fail` and `latency` to the API (e.g. `http://localhost:5174/?fail=true`) to show failures and delays without restarting the server. Documented in `docs/API.md`.
 - Added Vitest tests for the search rules (`src/game.test.ts`) and the API client (`src/api.test.ts`), including timeout, unreachable server, server error text and invalid answers.
+
+## B6 — Save and resume
+
+- The game state is saved in `localStorage` (`src/save.ts`, key `backpack-brawl.run`) after every change, inside an envelope with a `version` field. On start the app restores it and the URL follows the restored phase, so the player continues on the matching screen.
+- Before saving and after loading, the state is checked: shape, numbers in range, known item ids, unique item ids, a round that matches wins and lives, and for a battle the stored result must equal a fresh simulation. Malformed, incompatible (other version) or impossible saves are discarded, and a new playable run starts.
+- Refresh policy: a refresh during a **search** cancels it at no cost (gold, shop and backpack stay; the opponent per round is fixed anyway). A refresh during a **battle replay** skips to the end and applies the result once, because the result was decided when the battle started. A refresh can therefore not give a free reroll, a different opponent, a second result or avoid a loss.
+- Added Vitest tests in `src/save.test.ts`.
+
+## B7 — Hall of fame
+
+- New endpoints `GET` and `POST /api/hall-of-fame` (`server/hallOfFame.js`), stored in memory and documented in `docs/API.md`.
+- The server validates every run (field types and ranges, `rounds = wins + (3 − lives)`, finished runs only) and answers invalid data with 400 and a clear `error`.
+- Every run gets a `runId` when it starts. A second submission of the same `runId` returns the stored entry instead of adding a new one, so a run is never stored twice.
+- Ranking: victories first, then more wins, then fewer rounds, then earlier submission. Shown on the hall of fame page.
+- The result page has a name field, a submit button and a retry button that keeps the name. The hall of fame page (`/hall-of-fame`, linked in the header) shows loading, empty and error states with a retry.
+- Added Vitest tests in `server/hallOfFame.test.js`.
+
+## Final review fixes
+
+- **Save in rounds 6 and 7:** the save check allowed at most round 5, but a run can last 7 rounds. From round 6 on nothing was saved, so a refresh went back to round 5 and could undo a loss. The limit is now `MAX_ROUNDS = WINS_TO_VICTORY + START_LIVES − 1` (7). Added tests for round 6/7 and for a loss in round 6 followed by a refresh.
+- **Refresh policy is shown to the player:** after a refresh that changed something (search cancelled, battle skipped to its end, save discarded) a dismissible message appears at the top of every page. The rules panel explains the policy. Before, the battle case was silent and the search message said "Try again." twice.
+- **Hall of fame API:** a body that is not valid JSON now gets a JSON 400 error instead of Express's HTML page (which also showed server file paths). Names may use letters of any language (e.g. "Jürgen", "Sarıoğlu"). `POST` returns the entry with its rank.
+- **Hall of fame client:** requests give up after 8 s and show understandable messages. The result page remembers a submitted run after a refresh and shows its name and rank; the hall of fame page highlights the player's own run.
+- `docs/API.md` documents the hall of fame endpoints. `GameContext` no longer pretends the game can be `null`.
