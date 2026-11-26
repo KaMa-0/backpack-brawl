@@ -12,3 +12,5 @@
 |        4 | **Q4 Maintainability & extensibility** | New items, effects, statuses and sets can be added in a few predictable places, and the rules explained in the UI never drift from the code. | B3, B4                        |
 
 When goals conflict, a higher-priority goal wins. Example: if a saved run can't be validated, we discard it (Q1) rather than try to repair it (Q3).
+
+Across all Requirements: **Q5 Testability** where applicable and possible, automated testcases are added to make regression testing when experimenting with features easier.
