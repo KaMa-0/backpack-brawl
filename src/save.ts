@@ -1,12 +1,15 @@
 import { buildOpponentFighter, buildPlayerFighter, simulateBattle } from "./battle";
 import { newGame } from "./game";
 import { hasItem } from "./items";
-import { applyBattleResult, runOutcome } from "./run";
+import { applyBattleResult, runOutcome, START_LIVES, WINS_TO_VICTORY } from "./run";
 import { BACKPACK_SIZE, SHOP_SIZE } from "./shop";
 import type { BattleReplay, GameState, Opponent, RunState } from "./types";
 
 export const SAVE_KEY = "backpack-brawl.run";
 export const SAVE_VERSION = 1;
+
+/** The longest possible run: 4 wins and 2 losses, then the 7th battle decides it. */
+export const MAX_ROUNDS = WINS_TO_VICTORY + START_LIVES - 1;
 
 interface SaveEnvelope {
   version: 1;
@@ -21,14 +24,22 @@ interface StorageLike {
 
 export interface RestoredGame {
   game: GameState;
+  /** Message for the player when the restored run differs from the saved one, else `null`. */
   notice: string | null;
 }
+
+/** What the player is told after a refresh changed something (our refresh policy). */
+export const RESTORE_NOTICES = {
+  search: "The page was refreshed during a search, so the search was cancelled. Nothing was spent or rerolled, and the opponent stays the same.",
+  battle: "The page was refreshed during a battle. The battle was already decided, so it skipped to the end and the result counts.",
+  discarded: "Your saved run could not be loaded (it was damaged or from another version), so a new run was started.",
+} as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 const isInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value);
 
 function validRunRound(run: RunState): boolean {
-  const losses = 3 - run.lives;
+  const losses = START_LIVES - run.lives;
   const played = run.wins + losses;
   const outcome = runOutcome(run);
   return run.round === (outcome ? played : played + 1);
@@ -38,10 +49,10 @@ function validRun(value: unknown): value is RunState {
   if (!isRecord(value)) return false;
   const r = value;
   if (typeof r.runId !== "string" || r.runId.length === 0) return false;
-  if (!isInteger(r.round) || r.round < 1 || r.round > 5) return false;
+  if (!isInteger(r.round) || r.round < 1 || r.round > MAX_ROUNDS) return false;
   if (!isInteger(r.gold) || r.gold < 0) return false;
-  if (!isInteger(r.lives) || r.lives < 0 || r.lives > 3) return false;
-  if (!isInteger(r.wins) || r.wins < 0 || r.wins > 5) return false;
+  if (!isInteger(r.lives) || r.lives < 0 || r.lives > START_LIVES) return false;
+  if (!isInteger(r.wins) || r.wins < 0 || r.wins > WINS_TO_VICTORY) return false;
   if (!isInteger(r.seed) || r.seed < 0 || r.seed > 0xffffffff) return false;
   if (!isInteger(r.nextUid) || r.nextUid < 1) return false;
   if (!Array.isArray(r.shop) || r.shop.length !== SHOP_SIZE) return false;
@@ -133,27 +144,27 @@ export function restoreGame(seed: number, storage: StorageLike | undefined = typ
     const game = envelope.game as unknown as GameState;
     if (!validGame(game)) throw new Error("impossible save");
 
+    // Refresh during a search: cancel it. Gold, shop and backpack stay exactly as they were.
     if (game.phase === "searching") {
-      return {
-        game: { ...game, phase: "shop", search: null, battle: null, error: "Search cancelled after refresh. Nothing was rerolled or spent. Try again." },
-        notice: null,
-      };
+      return { game: { ...game, phase: "shop", search: null, battle: null, error: null }, notice: RESTORE_NOTICES.search };
     }
     if (game.phase === "battle" && game.battle) {
       const battle = game.battle;
-      if (battle.frame < battle.result.frames.length - 1) {
-        const finished = { ...battle, frame: battle.result.frames.length - 1 };
+      const last = battle.result.frames.length - 1;
+      // Refresh during a replay: the result was decided when the battle started, so apply it now (once).
+      if (battle.frame < last) {
+        const finished = { ...battle, frame: last };
         return {
           game: { ...game, battle: finished, run: applyBattleResult(game.run, battle.result.winner) },
-          notice: null,
+          notice: RESTORE_NOTICES.battle,
         };
       }
-      return { game: { ...game, battle: { ...battle, frame: battle.result.frames.length - 1 } }, notice: null };
+      return { game, notice: null };
     }
     return { game, notice: null };
   } catch {
     clearSavedGame(storage);
-    return { game: { ...newGame(seed), error: "The saved run was invalid or incompatible, so a fresh playable run was started." }, notice: "Saved run discarded" };
+    return { game: newGame(seed), notice: RESTORE_NOTICES.discarded };
   }
 }
 

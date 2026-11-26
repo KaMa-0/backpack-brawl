@@ -4,7 +4,7 @@ import { useGame } from "../state/GameContext";
 
 export function Layout() {
   const location = useLocation();
-  const { game } = useGame();
+  const { game, notice, dismissNotice } = useGame();
   const isHallOfFame = location.pathname === ROUTES.hall;
   const backRoute = routeForGame(game);
 
@@ -32,6 +32,15 @@ export function Layout() {
           </Link>
         )}
       </header>
+
+      {notice && (
+        <div role="status" className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-gold bg-gold/10 px-4 py-3 text-sm">
+          <p>ℹ️ {notice}</p>
+          <button type="button" onClick={dismissNotice} aria-label="Dismiss message" className="font-bold text-muted hover:text-gold">
+            ✕
+          </button>
+        </div>
+      )}
 
       <main className="flex flex-1 flex-col gap-4 py-6">
         <Outlet />

@@ -33,4 +33,12 @@ app.post("/api/hall-of-fame", (req, res) => {
   res.status(result.duplicate ? 200 : 201).json({ entry: result.entry, duplicate: result.duplicate });
 });
 
+// Errors Express throws itself, e.g. a body that isn't valid JSON: answer with a clear JSON error
+// instead of Express's default HTML page (which would also show server file paths).
+app.use((error, _req, res, _next) => {
+  if (error.type === "entity.parse.failed") return res.status(400).json({ error: "The request body must be valid JSON." });
+  console.error(error);
+  res.status(500).json({ error: "Something went wrong on the server." });
+});
+
 app.listen(port, () => console.log(`Backpack Brawl API listening on http://localhost:${port}`));

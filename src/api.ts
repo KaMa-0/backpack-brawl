@@ -97,25 +97,52 @@ export function parseOpponent(data: unknown): Opponent | null {
   return valid ? { id, name, icon, hp, round, items: [...(items as string[])] } : null;
 }
 
-export async function fetchHallOfFame(): Promise<HallEntry[]> {
-  const response = await fetch("/api/hall-of-fame");
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `Could not load the hall of fame (${response.status})`);
+/** Hall of fame requests give up after this, like the opponent search. */
+export const HALL_TIMEOUT_MS = 8000;
+
+/** Player-facing messages for hall of fame requests. */
+export const HALL_ERRORS = {
+  timeout: "The hall of fame took too long to answer.",
+  unreachable: "The hall of fame can't be reached right now.",
+} as const;
+
+/**
+ * Sends one request to the hall of fame API and returns the JSON answer.
+ * Throws an Error with a message the player can understand: the server's own `error` text,
+ * or one of `HALL_ERRORS` for a timeout or an unreachable server.
+ */
+async function hallRequest(init?: RequestInit): Promise<unknown> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HALL_TIMEOUT_MS);
+  try {
+    let response: Response;
+    try {
+      response = await fetch("/api/hall-of-fame", { ...init, signal: controller.signal });
+    } catch {
+      throw new Error(controller.signal.aborted ? HALL_ERRORS.timeout : HALL_ERRORS.unreachable);
+    }
+    const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    if (!response.ok) {
+      throw new Error(typeof body?.error === "string" ? body.error : `${HALL_ERRORS.unreachable} (error ${response.status})`);
+    }
+    return body;
+  } finally {
+    clearTimeout(timer);
   }
-  const body = await response.json() as { entries?: HallEntry[] };
-  return Array.isArray(body.entries) ? body.entries : [];
 }
 
+/** All stored runs, best first (the server ranks them). */
+export async function fetchHallOfFame(): Promise<HallEntry[]> {
+  const body = (await hallRequest()) as { entries?: unknown } | null;
+  return Array.isArray(body?.entries) ? (body.entries as HallEntry[]) : [];
+}
+
+/** Submits a finished run. Submitting the same run again returns the stored entry (`duplicate: true`). */
 export async function submitHallRun(payload: HallRunPayload): Promise<{ entry: HallEntry; duplicate: boolean }> {
-  const response = await fetch("/api/hall-of-fame", {
+  const body = await hallRequest({
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `Could not submit this run (${response.status})`);
-  }
-  return response.json() as Promise<{ entry: HallEntry; duplicate: boolean }>;
+  return body as { entry: HallEntry; duplicate: boolean };
 }

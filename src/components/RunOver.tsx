@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { submitHallRun } from "../api";
 import { ROUTES } from "../game";
+import { loadHallSubmission, saveHallSubmission, type HallSubmission } from "../hallSubmission";
 import type { RunOutcome } from "../run";
 import type { RunState } from "../types";
 
@@ -9,7 +10,11 @@ export function RunOver({ run, outcome, onNewRun }: { run: RunState; outcome: Ru
   const victory = outcome === "victory";
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  // Already submitted (also after a refresh)? Then show the result instead of the form.
+  const [submitted, setSubmitted] = useState<HallSubmission | null>(() => {
+    const saved = loadHallSubmission();
+    return saved?.runId === run.runId ? saved : null;
+  });
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
   const nameValid = name.trim().length >= 2 && name.trim().length <= 24;
@@ -24,8 +29,10 @@ export function RunOver({ run, outcome, onNewRun }: { run: RunState; outcome: Ru
     setSubmitting(true);
     setError(null);
     try {
-      await submitHallRun({ runId: run.runId, name: name.trim(), wins: run.wins, lives: run.lives, rounds: run.round });
-      setSubmitted(true);
+      const { entry } = await submitHallRun({ runId: run.runId, name: name.trim(), wins: run.wins, lives: run.lives, rounds: run.round });
+      const submission = { runId: run.runId, name: entry.name, rank: entry.rank };
+      saveHallSubmission(submission);
+      setSubmitted(submission);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not submit this run.");
     } finally {
@@ -50,7 +57,9 @@ export function RunOver({ run, outcome, onNewRun }: { run: RunState; outcome: Ru
           </button>
         </div>
       ) : (
-        <p className="rounded-md border border-gold px-4 py-2 text-gold" role="status">✓ Run saved to the Hall of Fame</p>
+        <p className="rounded-md border border-gold px-4 py-2 text-gold" role="status">
+          ✓ In the Hall of Fame as “{submitted.name}”, rank #{submitted.rank}
+        </p>
       )}
 
       <div className="flex flex-wrap justify-center gap-2">

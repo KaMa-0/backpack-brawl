@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { fetchHallOfFame } from "../api";
+import { loadHallSubmission } from "../hallSubmission";
 import type { HallEntry } from "../types";
 
 export function HallOfFamePage() {
   const [entries, setEntries] = useState<HallEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const ownRunId = loadHallSubmission()?.runId;
 
   useEffect(() => {
     let cancelled = false;
@@ -42,9 +44,12 @@ export function HallOfFamePage() {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.runId} className="border-t border-panel-edge">
+                <tr key={entry.runId} className={`border-t border-panel-edge ${entry.runId === ownRunId ? "bg-gold/15" : ""}`}>
                   <td className="p-2 font-bold text-gold">{entry.rank}</td>
-                  <td className="p-2 font-bold">{entry.name}</td>
+                  <td className="p-2 font-bold">
+                    {entry.name}
+                    {entry.runId === ownRunId && <span className="ml-2 text-xs text-gold">(your run)</span>}
+                  </td>
                   <td className="p-2">{entry.victory ? "👑 Victory" : "🪦 Defeat"}</td>
                   <td className="p-2">{entry.wins}</td>
                   <td className="p-2">{entry.rounds}</td>
@@ -54,7 +59,6 @@ export function HallOfFamePage() {
           </table>
         </div>
       )}
-      <p className="mt-4 text-center text-xs text-muted">Ranking: victories first, then wins, then fewer rounds.</p>
-    </section>
+      <p className="mt-4 text-center text-xs text-muted">Ranking: victories first, then more wins, then fewer rounds. Ties: the earlier submission ranks higher.</p>    </section>
   );
 }

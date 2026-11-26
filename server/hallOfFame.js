@@ -23,7 +23,8 @@ export function validateHallRun(payload) {
   if (name.length < HALL_NAME_MIN || name.length > HALL_NAME_MAX) {
     return { ok: false, error: `Name must be ${HALL_NAME_MIN}–${HALL_NAME_MAX} characters.` };
   }
-  if (!/^[A-Za-z0-9][A-Za-z0-9 _'-]*$/.test(name)) {
+  // \p{L} = any letter (also ü, ı, ğ, é …), \p{N} = any digit. The name must start with one of them.
+  if (!/^[\p{L}\p{N}][\p{L}\p{N} _'-]*$/u.test(name)) {
     return { ok: false, error: "Name may contain letters, numbers, spaces, hyphens, underscores and apostrophes." };
   }
 
@@ -56,12 +57,16 @@ export function submitHallRun(payload, now = Date.now()) {
   const checked = validateHallRun(payload);
   if (!checked.ok) return { ok: false, error: checked.error };
 
-  const existing = entries.get(checked.value.runId);
-  if (existing) return { ok: true, duplicate: true, entry: existing };
+  // The same run is never stored twice: a second submission returns the stored entry.
+  const duplicate = entries.has(checked.value.runId);
+  if (!duplicate) entries.set(checked.value.runId, { ...checked.value, submittedAt: now });
 
-  const entry = { ...checked.value, submittedAt: now };
-  entries.set(entry.runId, entry);
-  return { ok: true, duplicate: false, entry };
+  return { ok: true, duplicate, entry: rankedEntry(checked.value.runId) };
+}
+
+/** The stored entry with its current rank, so the player sees where the run landed. */
+function rankedEntry(runId) {
+  return getHallEntries().find((entry) => entry.runId === runId);
 }
 
 export function getHallEntries() {

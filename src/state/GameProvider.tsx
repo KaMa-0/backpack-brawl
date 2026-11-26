@@ -8,7 +8,10 @@ const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 
 /** Holds the game state for all routes, restores it safely, and persists valid transitions. */
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [game, setGame] = useState<GameState>(() => restoreGame(randomSeed()).game);
+  // Read the save only once, when the app starts.
+  const [restored] = useState(() => restoreGame(randomSeed()));
+  const [game, setGame] = useState<GameState>(restored.game);
+  const [notice, setNotice] = useState<string | null>(restored.notice);
 
   useEffect(() => {
     saveGame(game);
@@ -16,8 +19,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value: GameContextValue = {
     game,
-    startNewRun: () => setGame(newGame(randomSeed())),
-    update: (transition) => setGame((current) => (current ? transition(current) : current)),
+    startNewRun: () => {
+      setGame(newGame(randomSeed()));
+      setNotice(null);
+    },
+    update: (transition) => setGame((current) => transition(current)),
+    notice,
+    dismissNotice: () => setNotice(null),
   };
 
   return <GameContext value={value}>{children}</GameContext>;

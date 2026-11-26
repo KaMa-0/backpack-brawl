@@ -1,6 +1,6 @@
 # Backpack Brawl API
 
-The local API is a small Express server in `server/index.js`. It listens on port 4200 (override with the `PORT` environment variable). During Vite development, `/api` is proxied to it, so the frontend uses relative URLs such as `/api/opponents?round=1`. All responses are JSON. The server keeps no state: restarting it changes nothing about the answers.
+The local API is a small Express server in `server/index.js`. It listens on port 4200 (override with the `PORT` environment variable). During Vite development, `/api` is proxied to it, so the frontend uses relative URLs such as `/api/opponents?round=1`. All responses are JSON. The only state on the server is the hall of fame, which is kept in memory: restarting the server empties it and changes nothing else.
 
 ## `GET /api/health`
 
@@ -62,6 +62,88 @@ Every error response has the shape:
 | 503 | `fail=true`, or the server was started with `API_FAIL=true` | `The arena gates are shut. No challenger answered the call.` |
 
 An invalid `round` is reported as 400 even when failure is forced. All responses from this endpoint, errors included, arrive after the configured delay.
+
+## `GET /api/hall-of-fame`
+
+Returns all finished runs that were submitted, best first. The code lives in `server/hallOfFame.js`.
+
+### Success — 200
+
+```json
+{
+  "entries": [
+    { "rank": 1, "runId": "8f0c…", "name": "Ada", "wins": 5, "lives": 2, "rounds": 6, "victory": true, "submittedAt": 1795530021655 },
+    { "rank": 2, "runId": "c41d…", "name": "Jürgen", "wins": 4, "lives": 0, "rounds": 7, "victory": false, "submittedAt": 1795530098000 }
+  ]
+}
+```
+
+`entries` is empty (`[]`) when nothing was submitted yet.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `rank` | number | Position in the list, starting at 1 |
+| `runId` | string | Id of the run, created by the client when the run starts |
+| `name` | string | Name the player entered (trimmed) |
+| `wins` | number | Battles won (0–5) |
+| `lives` | number | Lives left (0–3) |
+| `rounds` | number | Battles played (1–7) |
+| `victory` | boolean | `true` if the run reached 5 wins |
+| `submittedAt` | number | Server time of the first submission, in milliseconds |
+
+### Ranking
+
+1. Victories before defeats.
+2. More wins first.
+3. Fewer rounds first (a faster run is better).
+4. Earlier submission first.
+
+## `POST /api/hall-of-fame`
+
+Submits a finished run. Body (JSON, matches `HallRunPayload` in `src/types.ts`):
+
+```json
+{ "runId": "8f0c…", "name": "Ada", "wins": 5, "lives": 2, "rounds": 6 }
+```
+
+### Validation
+
+The server does not trust the client. A run is rejected with 400 unless:
+
+| Field | Rule |
+|---|---|
+| `runId` | 8–100 letters, digits, `-` or `_` |
+| `name` | 2–24 characters after trimming; letters of any language, digits, spaces, `-`, `_` and `'`; starts with a letter or digit |
+| `wins` | whole number 0–5 |
+| `lives` | whole number 0–3 |
+| `rounds` | whole number 1–7, and exactly `wins + (3 − lives)`, because every round is one battle that is either won or costs a life |
+| result | a finished run: either 5 wins (a victory, at least 1 life left) or 0 lives (a defeat) |
+
+### Success — 201 / 200
+
+```json
+{ "entry": { "rank": 1, "runId": "8f0c…", "name": "Ada", "wins": 5, "lives": 2, "rounds": 6, "victory": true, "submittedAt": 1795530021655 }, "duplicate": false }
+```
+
+- **201** with `"duplicate": false`: the run was stored.
+- **200** with `"duplicate": true`: a run with this `runId` was already stored. Nothing changes; the stored entry (with its first name) is returned. A run is therefore never stored twice, even if the client retries.
+
+`entry.rank` is the run's current position, so the client can show it right away.
+
+### Errors — 400
+
+Same shape as the other endpoints, for example:
+
+| When | `error` |
+|---|---|
+| Name too short | `Name must be 2–24 characters.` |
+| Rounds don't match wins and lives | `Round count is inconsistent with wins and remaining lives.` |
+| Not a finished run | `A defeat must have zero lives, or a victory must have 5 wins.` |
+| Body is not valid JSON | `The request body must be valid JSON.` |
+
+### Client
+
+`fetchHallOfFame()` and `submitHallRun(payload)` in `src/api.ts` send these requests. Like the opponent search, they give up after 8 s and reject with a message the player can understand: the server's `error` text, or a generic text for a timeout or an unreachable server. The result page remembers a submitted run in `localStorage` (`src/hallSubmission.ts`), so after a refresh it shows the stored entry instead of the form, and the hall of fame page highlights the player's own run.
 
 ## Environment variables
 
